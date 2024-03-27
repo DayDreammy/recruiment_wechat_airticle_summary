@@ -11,9 +11,11 @@
 quicker动作地址 ： [获取公众号文章链接 - by 123yy123 - 动作信息 - Quicker (getquicker.net)](https://getquicker.net/Sharedaction?code=804e8748-a95d-43bd-402d-08dc41766143)
 
 video:
+
 ![getlink.mp4](README.assets/getlink.gif)
 
 输出：
+
 ![links.txt](README.assets/links.png)
 
 目前只适配了 2560×1440 的屏幕，存在一些鼠标固定坐标，别的尺寸屏幕需要自己调整下。
@@ -23,6 +25,7 @@ video:
 ![getarticle.gif](README.assets/getarticle.gif)
 
 输出：
+
 ![airtle_files](README.assets/airtle_files.png)
 
 每天定时运行即可实现微信公众号文章监控+采集，也就是公众号RSS。（目前全文只存在了本地，没有接入RSS服务，后续会接入）
