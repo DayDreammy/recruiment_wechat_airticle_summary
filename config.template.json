@@ -1,0 +1,17 @@
+{
+    "llm": "zhipu",
+    "model": "glm-4",
+    "openai_api_key": "",
+    "openai_base_url": "",
+    "xunfei_appid": "",
+    "xunfei_api_secret": "",
+    "xunfei_api_key": "",
+    "zhipu_api_key": "",
+    "airtable_tokens": "",
+    "airtable_baseid": "",
+    "airtable_table_name": "",
+    "feishu_appid": "",
+    "feishu_appsecret": "",
+    "feishu_apptoken": "",
+    "feishu_table_id": ""
+}
