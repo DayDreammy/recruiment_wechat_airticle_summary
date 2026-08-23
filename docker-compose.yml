@@ -1,0 +1,23 @@
+services:
+  recruiment:
+    build: .
+    image: recruiment-article-summary:latest
+    container_name: recruiment-prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # 容器内视角的固定值（environment 优先于 env_file）
+      WECHAT2RSS_BASE: http://host.docker.internal:8081
+      DATABASE_URL: sqlite:////app/data/message_monitor.db
+      WECHAT_SQLITE_DB_PATH: /app/data/message_monitor.db
+      PDFSUMMARY_CONFIG: config.json
+      PDF_DIR: pdfs
+      OUTPUT_DIR: data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./pdfs:/app/pdfs

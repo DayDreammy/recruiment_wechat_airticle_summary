@@ -1,0 +1,24 @@
+# 测试环境：与生产共用同一镜像，但使用独立的数据/日志/配置目录，
+# 不启动 cron，通过 `docker compose ... run --rm` 手动跑单次任务。
+services:
+  recruiment:
+    image: recruiment-article-summary:latest
+    container_name: recruiment-test
+    restart: "no"
+    env_file:
+      - .env.test
+    environment:
+      WECHAT2RSS_BASE: http://host.docker.internal:8081
+      DATABASE_URL: sqlite:////app/data/message_monitor.db
+      WECHAT_SQLITE_DB_PATH: /app/data/message_monitor.db
+      PDFSUMMARY_CONFIG: config.json
+      PDF_DIR: pdfs
+      OUTPUT_DIR: data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./config.test.json:/app/config.json:ro
+      - ./data-test:/app/data
+      - ./logs-test:/app/logs
+      - ./pdfs-test:/app/pdfs
+    command: ["/bin/bash", "-c", "echo test env ready; sleep infinity"]

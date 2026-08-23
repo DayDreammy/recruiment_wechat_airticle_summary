@@ -1,0 +1,23 @@
+{
+    "llm": "deepseek",
+    "table_backend": "feishu",
+    "mirror_feishu_upload": false,
+    "feishu_batch_size": 500,
+    "model": "deepseek-v4-flash",
+    "max_workers": 100,
+    "openai_api_key": "",
+    "openai_base_url": "",
+    "deepseek_api_key": "",
+    "deepseek_base_url": "https://api.deepseek.com",
+    "xunfei_appid": "",
+    "xunfei_api_secret": "",
+    "xunfei_api_key": "",
+    "zhipu_api_key": "",
+    "airtable_tokens": "",
+    "airtable_baseid": "",
+    "airtable_table_name": "",
+    "feishu_appid": "",
+    "feishu_appsecret": "",
+    "feishu_apptoken": "",
+    "feishu_table_id": ""
+}
