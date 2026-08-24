@@ -689,7 +689,8 @@ def summarize_single_article(article, bot, need_delay=False):
         prompt = prompts_pool.get_prompt(
             task_type="summary", article_type=article.article_type)
         article.summary = summarize_article(
-            article.text, bot=bot, summary_prompt=prompt)
+            f"标题：{article.title}\n正文：{article.text}",
+            bot=bot, summary_prompt=prompt)
 
         if need_delay:
             time.sleep(random.randint(sleep_time_min, sleep_time_max))

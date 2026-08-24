@@ -1,5 +1,7 @@
 import smtplib
 import os
+import re
+import html
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr
@@ -243,16 +245,24 @@ def send_email_files_to_recipients(file_path, recipient_emails):
 
 def construct_personal_email_content(articles):
     """
-    构造个性化邮件内容，标题直接作为超链接
+    构造个性化邮件内容：标题超链接 + 精简纯文本摘要（无 Markdown，换行正常渲染）
     :param articles: 文章列表
     :return: 邮件内容
     """
-    # 邮件头部
+
+    def clean_summary(text):
+        """去掉摘要里的 Markdown 残留，避免在邮件里显示成 ** 等符号。"""
+        text = text or ""
+        text = re.sub(r"\*\*|`|#{1,6}", "", text)
+        text = re.sub(r"^[\s]*[-*•]\s+", "", text, flags=re.M)
+        text = re.sub(r"总结内容[:：]?\s*", "", text)
+        return text.strip()
+
     personal_email_content = f"""
     <html>
     <body>
-        <p>尊敬的用户：</p>
-        <p>以下是您订阅的公众号昨日文章总结 (共 {len(articles)} 篇), 请查收！</p>
+        <p style="font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; color:#333;">尊敬的用户：</p>
+        <p style="font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; color:#333;">以下是您订阅的公众号昨日文章总结（共 {len(articles)} 篇），请查收：</p>
         <ul>
     """
 
@@ -262,43 +272,35 @@ def construct_personal_email_content(articles):
 
     # 遍历每篇文章，构造邮件内容
     for idx, article in enumerate(articles, start=1):
-        # 格式化 key_info
-        key_info = article.processed_key_info
-        key_info_formatted = ""
         try:
-            if key_info:
-                for key, value in key_info.items():
-                    key_info_formatted += f"{key}: {value}<br>"
-        except:
-            key_info_formatted = ""
-
-        try:
-            summary = article.processed_summary[:250]
-        except:
+            summary = clean_summary(article.processed_summary)[:500]
+        except Exception:
             summary = ""
+        summary_html = html.escape(summary) if summary else "（无摘要）"
 
-        # 添加每篇文章的内容
         personal_email_content += f"""
-        <li>
-            {idx}. {article.account}<strong> <a href="{article.content_url}">{article.title}</a></strong><br>
-            <p>📃 摘要：{summary}...</p>
+        <li style="list-style:none; margin: 12px 0; padding: 12px 14px; background:#f7f8fa; border-radius:8px; font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;">
+            <div style="font-size:15px; font-weight:600; color:#111;">
+                {idx}. {html.escape(article.account or '')}
+                · <a href="{article.content_url}" style="color:#1a73e8; text-decoration:none;">{html.escape(article.title or '')}</a>
+            </div>
+            <div style="margin-top:6px; font-size:13px; color:#444; line-height:1.7; white-space:pre-line;">{summary_html}</div>
         </li>
         """
-        # <p>🔑 关键信息：<br>{key_info_formatted}</p>
 
     # 邮件结束语
     personal_email_content += """
     </ul>
-    <p>感谢您的阅读，祝您一天愉快！</p>
-    <p>如果有任何问题或建议，请随时与我们联系。(交流QQ群：442041683)</p>
+    <p style="font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; color:#333;">感谢您的阅读，祝您一天愉快！</p>
+    <p style="font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; color:#333;">如有问题或建议，欢迎与我们联系（交流QQ群：442041683）。</p>
 
     <hr>
 
-    <p>本项目招聘信息Demo：<a href="https://jobs.daydreammy.xyz" target="_blank">Pandora 招聘信息分享</a></p>
+    <p style="font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; color:#333;">本项目招聘信息 Demo：<a href="https://jobs.daydreammy.xyz" target="_blank">Pandora 招聘信息分享</a></p>
 
-    <p>我们的终极愿景是 “让信息更加顺畅的流动 + 用优质输入建立深刻认知”。</p>
+    <p style="font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; color:#333;">我们的终极愿景是 “让信息更加顺畅的流动 + 用优质输入建立深刻认知”。</p>
 
-    <p>此致，<br>Daydreamer</p>
+    <p style="font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; color:#333;">此致，<br>Daydreamer</p>
     </body>
     </html>
     """
