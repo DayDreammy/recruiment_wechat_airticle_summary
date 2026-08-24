@@ -1,3 +1,5 @@
 CRON_TZ=Asia/Shanghai
 0 * * * * /app/scripts/run_fetch.sh >> /app/logs/cron.log 2>&1
 30 8 * * * /app/scripts/run_summary.sh >> /app/logs/cron.log 2>&1
+30 10 * * * /app/scripts/notify_daily_status.sh >> /app/logs/cron.log 2>&1
+0 * * * * /app/scripts/check_fetch_health.sh >> /app/logs/cron.log 2>&1

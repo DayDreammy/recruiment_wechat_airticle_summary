@@ -18,6 +18,14 @@ import os
 from datetime import datetime
 
 try:
+    from rapidocr_onnxruntime import RapidOCR
+    RAPID_AVAILABLE = True
+except Exception:
+    RapidOCR = None
+    RAPID_AVAILABLE = False
+
+# 兼容回退：旧环境仅装有 paddleocr 时仍可用
+try:
     from paddleocr import PaddleOCR
     PADDLE_AVAILABLE = True
 except Exception:
@@ -273,13 +281,39 @@ _ocr_lock = threading.Lock()
 
 
 def _get_ocr_engine():
-    """懒加载 PaddleOCR 3.x 引擎（旧版 use_gpu/show_log 参数已移除）。"""
+    """懒加载 OCR 引擎：优先 RapidOCR(ONNX/CoreML)，回退 PaddleOCR。"""
     global _ocr_engine
-    if not PADDLE_AVAILABLE:
-        return None
     if _ocr_engine is None:
-        _ocr_engine = PaddleOCR(lang="ch", use_textline_orientation=True)
+        if RAPID_AVAILABLE:
+            _ocr_engine = ("rapid", RapidOCR())
+        elif PADDLE_AVAILABLE:
+            _ocr_engine = (
+                "paddle", PaddleOCR(lang="ch", use_textline_orientation=True))
     return _ocr_engine
+
+
+def _rapid_ocr_pdf(engine, pdf_path):
+    """RapidOCR：先用 PyMuPDF 渲染页面，再逐页 OCR（支持 CoreML 加速）。"""
+    text = []
+    doc = fitz.open(pdf_path)
+    try:
+        for page in doc:
+            pix = page.get_pixmap(dpi=150)
+            img = pix.tobytes("png")
+            result, _elapse = engine(img)
+            if result:
+                text.extend(line[1] for line in result)
+    finally:
+        doc.close()
+    return text
+
+
+def _paddle_ocr_pdf(engine, pdf_path):
+    text = []
+    result = engine.predict(pdf_path)
+    for res in result or []:
+        text.extend(res.get("rec_texts") or [])
+    return text
 
 
 def paddle_ocr_pdf(pdf_path):
@@ -288,16 +322,17 @@ def paddle_ocr_pdf(pdf_path):
         logger.warning(f"OCR 跳过：PDF 不存在 {pdf_path}")
         return ""
     try:
-        ocr = _get_ocr_engine()
-        if ocr is None:
-            logger.warning("PaddleOCR 未安装（Docker 精简镜像），跳过 OCR")
+        engine = _get_ocr_engine()
+        if engine is None:
+            logger.warning("OCR 未安装（rapidocr/paddleocr 均不可用），跳过 OCR")
             return ""
-        # PaddleOCR 3.x 并发 predict 需要串行化
+        kind, ocr = engine
+        # OCR 引擎并发调用需要串行化
         with _ocr_lock:
-            result = ocr.predict(pdf_path)
-        for res in result or []:
-            rec_texts = res.get("rec_texts") or []
-            text.extend(rec_texts)
+            if kind == "rapid":
+                text = _rapid_ocr_pdf(ocr, pdf_path)
+            else:
+                text = _paddle_ocr_pdf(ocr, pdf_path)
     except Exception as e:
         logger.exception(f"提取PDF文本失败: {e}")
 
