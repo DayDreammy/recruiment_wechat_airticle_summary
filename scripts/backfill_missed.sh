@@ -25,7 +25,8 @@ for _ in $(seq 1 360); do
   sleep 60
 done
 
-for d in 2026-08-17 2026-08-19 2026-08-20 2026-08-21 2026-08-22; do
+# 8/19、8/20 在数据源窗口内已过期（未入库），无可补内容
+for d in 2026-08-17 2026-08-21 2026-08-22 2026-08-23; do
   echo "$(date '+%F %T') backfill $d starting" >> logs/backfill.log
   PDFSUMMARY_START_DATE="$d" PDFSUMMARY_END_DATE="$d" \
     .venv/bin/python pdfsummary.py pdfs data config.json >> logs/summary.log 2>&1

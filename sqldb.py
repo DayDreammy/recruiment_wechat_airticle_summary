@@ -140,6 +140,13 @@ def insert_processed_article(original_id, title, content, processed_summary, pro
     :return: 插入的记录 ID 或 None
     """
     try:
+        # 兼容 SQLite：Date 列只接受 date 对象（字符串来自 wechat_articles.created_at）
+        if isinstance(publish_date, str):
+            try:
+                publish_date = datetime.strptime(
+                    publish_date[:10], '%Y-%m-%d').date()
+            except ValueError:
+                publish_date = None
         # 创建记录
         new_article = ProcessedArticle(
             original_id=original_id,
