@@ -410,10 +410,6 @@ def summarize_article(text, bot=None, summary_prompt="总结下列文本内容")
                 integrated_summary = integrated_summary[:direct_summary_max_len]
             final_summary = bot.get_response(summary_prompt, integrated_summary)
 
-    if final_summary != '':
-        end_line = f"\n\n(Powered by {bot.model}, 请以原文为准。)"
-        final_summary += end_line
-
     logger.info(f"Summary: {final_summary}")
 
     return final_summary
