@@ -72,6 +72,8 @@ class RSSArticleFetcherEnhanced:
         try:
             conn = sqlite3.connect(self.db_path)
             conn.execute("PRAGMA foreign_keys = ON")
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=30000")
             # 新环境（Docker 空数据卷）幂等建表，与既有 schema 保持一致
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS wechat_articles (

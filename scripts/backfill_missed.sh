@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # 一次性补跑 8/17 与 8/19-8/22 漏掉的文章（默认日期窗口=发布日=created_at）。
 # 先等当前抓取（8/19-8/23 补抓）结束，再逐天跑汇总并标记已处理。
+#
+# 警告：不要用 `launchctl submit` 运行本脚本——submit 默认 minimum runtime=10s，
+# 任务跑完太快会被 launchd 无限重启。请用一次性 plist（RunAtLoad）或前台执行。
 set -uo pipefail
 cd "$(dirname "$0")/.."
 export PATH="$HOME/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"

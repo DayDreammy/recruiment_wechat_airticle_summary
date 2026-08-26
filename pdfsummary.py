@@ -1239,7 +1239,6 @@ def process(directory, output_folder, RecruimentCheck=False, Get_Summary=True, G
     # 5. fetch today's articles list from db
     recruitment_articles = fetch_processed_articles_by_type(
         'recruitment', only_today=True)
-    fetch_articles_by_type
     if record_limit:
         recruitment_articles = recruitment_articles[:record_limit]
 
@@ -1286,7 +1285,16 @@ def process(directory, output_folder, RecruimentCheck=False, Get_Summary=True, G
     except Exception as e:
         logger.exception(f"发送邮件失败: {e}")
 
-    # 8. log info
+    # 8. 全部成功（含发布）后标记已处理，避免同一天重跑重复发信
+    for article in articles:
+        original_id = getattr(article, "original_id", None)
+        if original_id:
+            try:
+                mark_article_processed(original_id)
+            except Exception as e:
+                logger.warning(f"标记文章已处理失败: {e}")
+
+    # 9. log info
     log_info(articles, start_time)
 
 

@@ -57,11 +57,32 @@ def main():
     ]
     feishu = re.findall(r"Feishu upload summary: (\{[^}]+\})", tail)
     feishu_line = feishu[-1] if feishu else "（无）"
-    running = bool(
-        subprocess.run(
-            ["pgrep", "-f", "pdfsummary.py"], capture_output=True
+    running = False
+    stuck = False
+    _pids = subprocess.run(
+        ["pgrep", "-f", "pdfsummary.py"], capture_output=True, text=True,
+    ).stdout.strip()
+    if _pids:
+        running = True
+        _pid = _pids.splitlines()[0]
+        _et = subprocess.run(
+            ["ps", "-p", _pid, "-o", "etime="],
+            capture_output=True, text=True,
         ).stdout.strip()
-    )
+        # 粗解析 etime（h:mm:ss / d-hh:mm:ss）判断是否超过 3 小时
+        try:
+            if "-" in _et:
+                days, rest = _et.strip().split("-", 1)
+                hours = int(days) * 24
+            else:
+                rest = _et.strip()
+                hours = 0
+            parts = [int(x) for x in rest.split(":")]
+            hours += parts[0] if len(parts) == 3 else 0
+            if hours > 3:
+                stuck = True
+        except Exception:
+            pass
 
     body = "\n".join([
         f"日期：{today}",
@@ -71,7 +92,10 @@ def main():
         f"错误标记：{errors or '无'}",
     ])
 
-    if running:
+    if stuck:
+        status, subject = "FAIL", f"【招聘汇总】{today} 汇总进程疑似卡死"
+        body += "\n\n8:30 的汇总进程已运行超过 3 小时，疑似卡死，请检查。"
+    elif running:
         status, subject = "INFO", f"【招聘汇总】{today} 仍在运行中"
         body += "\n\n8:30 的汇总进程还在运行，请稍后再确认。"
     elif arts == 0 and not errors:

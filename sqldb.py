@@ -44,7 +44,17 @@ SQLITE_DB_PATH = os.getenv(
 )
 
 # 初始化 SQLAlchemy
-engine = create_engine(DATABASE_URL)
+_engine_kwargs = {}
+if DATABASE_URL.startswith("sqlite"):
+    _engine_kwargs["connect_args"] = {"timeout": 30}
+engine = create_engine(DATABASE_URL, **_engine_kwargs)
+if DATABASE_URL.startswith("sqlite"):
+    try:
+        with engine.connect() as _conn:
+            _conn.exec_driver_sql("PRAGMA journal_mode=WAL")
+            _conn.exec_driver_sql("PRAGMA busy_timeout=30000")
+    except Exception:
+        pass
 Session = sessionmaker(bind=engine)
 session = Session()
 Base = declarative_base()
@@ -774,7 +784,7 @@ def fetch_unprocessed_articles(db_path=None, start_date=datetime.now().strftime(
 
     print(f"Fetching records from {start_date} to {end_date}")
 
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30)
     cursor = conn.cursor()
 
     # 直接使用日期字符串进行查询，按创建时间升序排列
@@ -799,7 +809,7 @@ def mark_article_processed(article_id, db_path=None):
     """标记文章为已处理"""
     if db_path is None:
         db_path = SQLITE_DB_PATH
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE wechat_articles 
@@ -819,7 +829,7 @@ def update_article_type(article_id, article_type):
     :return: 更新是否成功
     """
     try:
-        conn = sqlite3.connect(SQLITE_DB_PATH)
+        conn = sqlite3.connect(SQLITE_DB_PATH, timeout=30)
         cursor = conn.cursor()
 
         # 更新文章类型
@@ -862,7 +872,7 @@ def batch_update_article_types(articles_data):
     :return: 成功更新的记录数
     """
     try:
-        conn = sqlite3.connect(SQLITE_DB_PATH)
+        conn = sqlite3.connect(SQLITE_DB_PATH, timeout=30)
         cursor = conn.cursor()
 
         # 批量更新文章类型
@@ -908,7 +918,7 @@ def fetch_articles_by_type(article_type, only_today=False, db_path=None):
         db_path = SQLITE_DB_PATH
 
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path, timeout=30)
         cursor = conn.cursor()
 
         # 构建基础查询

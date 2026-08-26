@@ -282,7 +282,7 @@ def construct_personal_email_content(articles):
         <li style="list-style:none; margin: 12px 0; padding: 12px 14px; background:#f7f8fa; border-radius:8px; font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;">
             <div style="font-size:15px; font-weight:600; color:#111;">
                 {idx}. {html.escape(article.account or '')}
-                · <a href="{article.content_url}" style="color:#1a73e8; text-decoration:none;">{html.escape(article.title or '')}</a>
+                · <a href="{html.escape(article.content_url or '', quote=True)}" style="color:#1a73e8; text-decoration:none;">{html.escape(article.title or '')}</a>
             </div>
             <div style="margin-top:6px; font-size:13px; color:#444; line-height:1.7; white-space:pre-line;">{summary_html}</div>
         </li>

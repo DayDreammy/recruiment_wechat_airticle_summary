@@ -14,6 +14,7 @@ from smtp import send_email
 PROJECT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.path.join(PROJECT, "data", "message_monitor.db")
 FETCH_LOG = os.path.join(PROJECT, "logs", "rss_fetcher.log")
+BUILD_LOG = os.path.join(PROJECT, "logs", "build_feed.log")
 STATE_FILE = os.path.join(PROJECT, "logs", ".fetch_alert_state")
 RECIPIENT = os.getenv("NOTIFY_EMAIL", "1781051483@qq.com").strip()
 
@@ -34,6 +35,16 @@ def parse_etime(s):
         return 0
 
 
+def kill_process(pid):
+    """先 TERM 后 KILL，确保卡死的进程能被回收。"""
+    try:
+        subprocess.run(["kill", pid], capture_output=True)
+        subprocess.run(["sleep", "10"], capture_output=True)
+        subprocess.run(["kill", "-9", pid], capture_output=True)
+    except Exception:
+        pass
+
+
 def main():
     problems = []
     fetch_running = False
@@ -49,17 +60,33 @@ def main():
             capture_output=True, text=True,
         ).stdout.strip()
         if parse_etime(et) > 5:
-            problems.append(f"抓取进程 PID {pid} 已运行 {et}（>5h），疑似卡死")
+            kill_process(pid)
+            problems.append(f"抓取进程 PID {pid} 已运行 {et}（>5h），已强制终止并待重启")
+
+    # 汇总进程卡死（>3h）也自动回收，避免阻塞后续每日任务
+    sum_out = subprocess.run(
+        ["pgrep", "-f", "pdfsummary.py"], capture_output=True, text=True,
+    ).stdout.strip()
+    if sum_out:
+        sum_pid = sum_out.splitlines()[0]
+        sum_et = subprocess.run(
+            ["ps", "-p", sum_pid, "-o", "etime="],
+            capture_output=True, text=True,
+        ).stdout.strip()
+        if parse_etime(sum_et) > 3:
+            kill_process(sum_pid)
+            problems.append(f"汇总进程 PID {sum_pid} 已运行 {sum_et}（>3h），已强制终止")
 
     # 以抓取日志的最后活动时间为准（避免夜间/周末发布间隔导致的误报）
+    last_activity = 0.0
     try:
-        last_activity = datetime.fromtimestamp(os.path.getmtime(FETCH_LOG))
-        if not fetch_running and datetime.now() - last_activity > timedelta(hours=30):
-            problems.append(
-                f"抓取日志已 {int((datetime.now() - last_activity).total_seconds() // 3600)} 小时无更新"
-            )
+        last_activity = max(os.path.getmtime(FETCH_LOG), os.path.getmtime(BUILD_LOG))
     except OSError:
-        problems.append("找不到抓取日志，抓取可能从未运行")
+        problems.append("找不到抓取/聚合日志，抓取可能从未运行")
+    if last_activity and not fetch_running:
+        age_hours = (datetime.now() - datetime.fromtimestamp(last_activity)).total_seconds() / 3600
+        if age_hours > 30:
+            problems.append(f"抓取/聚合日志已 {int(age_hours)} 小时无更新")
 
     if not problems:
         return 0
